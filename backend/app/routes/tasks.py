@@ -1,0 +1,97 @@
+"""
+Task routes for CRUD operations on todo items.
+
+Endpoints:
+- GET /api/tasks - List all tasks for current user
+- POST /api/tasks - Create a new task
+- GET /api/tasks/{task_id} - Get a specific task
+- PUT /api/tasks/{task_id} - Update a task
+- PATCH /api/tasks/{task_id}/complete - Toggle task completion status
+- DELETE /api/tasks/{task_id} - Delete a task
+"""
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from datetime import datetime
+
+from app.dependencies import get_db, get_current_user
+from app.models import User, Task
+from app.schemas import (
+    TaskCreateRequest,
+    TaskUpdateRequest,
+    TaskResponse,
+    TaskListResponse,
+)
+from app.services.task_service import TaskService
+
+router = APIRouter()
+
+
+@router.get("", response_model=TaskListResponse)
+def list_tasks(
+    completed: bool | None = None,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """List all tasks for the current user."""
+    tasks = TaskService.list_tasks(session, current_user.id, completed)
+    return TaskListResponse(
+        tasks=[TaskResponse.model_validate(task) for task in tasks],
+        total=len(tasks),
+    )
+
+
+@router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
+def create_task(
+    task_data: TaskCreateRequest,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """Create a new task for the current user."""
+    task = TaskService.create_task(session, current_user.id, task_data)
+    return TaskResponse.model_validate(task)
+
+
+@router.get("/{task_id}", response_model=TaskResponse)
+def get_task(
+    task_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """Get a specific task by ID."""
+    task = TaskService.get_task(session, current_user.id, task_id)
+    return TaskResponse.model_validate(task)
+
+
+@router.put("/{task_id}", response_model=TaskResponse)
+def update_task(
+    task_id: int,
+    task_data: TaskUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """Update an existing task."""
+    task = TaskService.update_task(session, current_user.id, task_id, task_data)
+    return TaskResponse.model_validate(task)
+
+
+@router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_task(
+    task_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """Delete a task."""
+    TaskService.delete_task(session, current_user.id, task_id)
+    return None
+
+
+@router.patch("/{task_id}/complete", response_model=TaskResponse)
+def toggle_task_completion(
+    task_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """Toggle the completion status of a task."""
+    task = TaskService.toggle_task(session, current_user.id, task_id)
+    return TaskResponse.model_validate(task)

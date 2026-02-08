@@ -1,0 +1,36 @@
+{
+  "endpoint": "/api/chat",
+  "method": "POST",
+  "description": "Stateless chat endpoint for interacting with the Todo AI agent.",
+  "request": {
+    "body": {
+      "message": {
+        "type": "string",
+        "description": "User natural language input"
+      },
+      "conversation_id": {
+        "type": "string",
+        "optional": true,
+        "description": "UUID of an existing conversation to continue"
+      }
+    }
+  },
+  "response": {
+    "200": {
+      "body": {
+        "response": {
+          "type": "string",
+          "description": "AI's human-friendly response"
+        },
+        "conversation_id": {
+          "type": "string",
+          "description": "UUID of the conversation (persisted in DB)"
+        },
+        "status": "success"
+      }
+    },
+    "401": {
+      "description": "Unauthorized - Missing or invalid JWT token"
+    }
+  }
+}
